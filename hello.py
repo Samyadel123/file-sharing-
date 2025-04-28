@@ -2,6 +2,17 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi import File, UploadFile
 import boto3
+app = FastAPI()
+s3 = boto3.client('s3') 
+bucket_name = 'samydb'
+
+@app.get("/")
+async def root():
+    """
+    this function handles the root path
+    :return: hello world
+    """
+    return {"message": "Hello World"}
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """
@@ -9,16 +20,33 @@ async def upload_file(file: UploadFile = File(...)):
     :param file: the file to upload
     :return: the filename of the uploaded file
     """
-    #TODO: make the upload logic
+    file_content = await file.read()
+    try:
+        s3.put_object(Bucket=bucket_name, Key=file.filename)        
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=file.filename,
+            Body=file_content,
+            ContentType=file.content_type
+        )
+    except Exception as e:
+        return {"error": str(e)}
     return {"filename": file.filename}
+    
+    
 @app.get("/file_list")
 async def get_file_list():
     """
     this function handles getting the list of files in the s3 bucket
     :return: the list of files in the s3 bucket
     """
-    #TODO: make the get file list logic
-    return {"files": ["file1.txt", "file2.txt"]}
+    
+    response = s3.list_objects_v2(Bucket=bucket_name)
+    if 'Contents' in response:
+        files = [item['Key'] for item in response['Contents']]
+    else:
+        files = []
+    return {"files": files}
 @app.get("/get_pre_signed_url{file_name}")
 async def get_pre_signed_url(file_name: str):
     """
@@ -26,12 +54,17 @@ async def get_pre_signed_url(file_name: str):
     :param file_name: the name of the file to get the pre-signed url for
     :return: the pre-signed url for the file
     """
-    #TODO: make the get pre-signed url logic
-def main():
-    config = uvicorn.Config("hello:app", port=8000, log_level="info")
-    server = uvicorn.Server(config)
-    server.serve()
-
+   
+    response = s3.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket_name, 'Key': file_name},
+        ExpiresIn=3600
+    )
+    return {"url": response}
 
 if __name__ == "__main__":
-    main()
+    """
+    this function handles running the app
+    :return: none
+    """
+    uvicorn.run("hello:app", host="127.0.0.1",port=8000, reload=True)
