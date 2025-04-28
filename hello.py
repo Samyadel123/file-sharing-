@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi import File, UploadFile
+from fastapi.responses import JSONResponse
 import boto3
 app = FastAPI()
 s3 = boto3.client('s3') 
@@ -29,10 +30,10 @@ async def upload_file(file: UploadFile = File(...)):
             Body=file_content,
             ContentType=file.content_type
         )
+        return JSONResponse(content={"filename": file.filename,
+                                      "message": "Upload successful"}, status_code=200)
     except Exception as e:
-        return {"error": str(e)}
-    return {"filename": file.filename}
-    
+        return JSONResponse(status_code=500, content={"error": str(e)})
     
 @app.get("/file_list")
 async def get_file_list():
