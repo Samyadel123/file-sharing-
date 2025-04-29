@@ -11,7 +11,7 @@ s3 = boto3.client('s3')
 # name of the s3 bucket
 bucket_name = 'samydb'
 # the origin of the requests to make a valid CORS request
-origin:list[str] = ["http://localhost:3000"]
+origin:list[str] = ["*"]
 # add CORS middleware to the app
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +28,7 @@ async def root():
     :return: hello world
     """
     return {"message": "Hello World"}
+
 
 
 # file upload endpoint
@@ -67,7 +68,7 @@ async def get_file_list():
         files = [item['Key'] for item in response['Contents']]
     else:
         files = []
-    return {"files": files}
+    return JSONResponse(content={"files": files}, status_code=200)
 
 
 
@@ -86,7 +87,7 @@ async def get_pre_signed_url(file_name: str):
         Params={'Bucket': bucket_name, 'Key': file_name},
         ExpiresIn=3600
     )
-    return {"url": response}
+    return JSONResponse(content={"url": response}, status_code=200)
 
 
 
