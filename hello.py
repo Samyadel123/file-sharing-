@@ -2,11 +2,25 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi import File, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import boto3
+# fastapi app instance
 app = FastAPI()
+# s3 client instance
 s3 = boto3.client('s3') 
+# name of the s3 bucket
 bucket_name = 'samydb'
-
+# the origin of the requests to make a valid CORS request
+origin:list[str] = ["http://localhost:3000"]
+# add CORS middleware to the app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origin,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# add a simple root path to the app
 @app.get("/")
 async def root():
     """
@@ -14,6 +28,9 @@ async def root():
     :return: hello world
     """
     return {"message": "Hello World"}
+
+
+# file upload endpoint
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """
@@ -22,8 +39,7 @@ async def upload_file(file: UploadFile = File(...)):
     :return: the filename of the uploaded file
     """
     file_content = await file.read()
-    try:
-        s3.put_object(Bucket=bucket_name, Key=file.filename)        
+    try:      
         s3.put_object(
             Bucket=bucket_name,
             Key=file.filename,
@@ -35,6 +51,10 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     
+
+
+
+# file list endpoint
 @app.get("/file_list")
 async def get_file_list():
     """
@@ -48,6 +68,11 @@ async def get_file_list():
     else:
         files = []
     return {"files": files}
+
+
+
+
+# getting a pre-signed url for a file to download in the browser 
 @app.get("/get_pre_signed_url{file_name}")
 async def get_pre_signed_url(file_name: str):
     """
@@ -63,9 +88,12 @@ async def get_pre_signed_url(file_name: str):
     )
     return {"url": response}
 
+
+
 if __name__ == "__main__":
     """
     this function handles running the app
     :return: none
     """
+    # uvicorn config 
     uvicorn.run("hello:app", host="127.0.0.1",port=8000, reload=True)
