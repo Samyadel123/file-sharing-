@@ -4,6 +4,7 @@ from fastapi import File, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import boto3
+#from botocore.client import Config
 # fastapi app instance
 app = FastAPI()
 # s3 client instance
@@ -12,7 +13,7 @@ s3 = boto3.client('s3')
 bucket_name = 'samydb'
 # the origin of the requests to make a valid CORS request
 origin:list[str] = ["*"]
-# add CORS middleware to the app
+# add CORS middleware to the apps
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origin,
@@ -87,7 +88,7 @@ async def get_pre_signed_url(file_name: str):
         Params={'Bucket': bucket_name, 'Key': file_name},
         ExpiresIn=3600
     )
-    return JSONResponse(content={"url": response}, status_code=200)
+    return {"url": response}
 
 
 
