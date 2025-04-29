@@ -3,12 +3,14 @@ from fastapi import FastAPI
 from fastapi import File, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+import boto3.session
 import boto3
-#from botocore.client import Config
 # fastapi app instance
 app = FastAPI()
 # s3 client instance
-s3 = boto3.client('s3') 
+s3 = boto3.client('s3',
+                  config= boto3.session.Config(signature_version='s3v4') # for authorization
+                  ,region_name='eu-north-1') # region name
 # name of the s3 bucket
 bucket_name = 'samydb'
 # the origin of the requests to make a valid CORS request
